@@ -2,16 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# Best Parameters from Optuna optimization
-learning_rate = 0.001866024673912973
-n_embd = 56
-dropout = 0.35852932833222273
-weight_decay = 0.2674327245247875
-warmup_steps = 900
-top_k =  5
-block_size = 64
-temperature = 0.6664847146432503
+import optuna
 
 # Fixed Hyperparameters
 batch_size = 32
@@ -20,7 +11,7 @@ eval_interval = 100
 eval_iters = 200
 n_head = 4
 n_layer = 3
-patience = 10
+patience = 5
 early_stopping_threshold = 5e-3
 beta1 = 0.9
 beta2 = 0.95
@@ -47,7 +38,7 @@ n = int(0.9 * len(data))
 train_data = data[:n]
 val_data = data[n:]
 
-def get_batch(split):
+def get_batch(split, block_size):
     data = train_data if split == "train" else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))
     x = torch.stack([data[i : i + block_size] for i in ix])
@@ -55,13 +46,13 @@ def get_batch(split):
     return x.to(device), y.to(device)
 
 @torch.no_grad()
-def estimate_loss(model):
+def estimate_loss(model, block_size):
     out = {}
     model.eval()
     for split in ["train", "val"]:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
-            X, Y = get_batch(split)
+            X, Y = get_batch(split, block_size)
             _, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
@@ -69,7 +60,7 @@ def estimate_loss(model):
     return out
 
 class GPTDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, n_embd, dropout, block_size):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
@@ -101,7 +92,7 @@ class GPTDecoder(nn.Module):
         loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))
         return logits, loss
 
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx, max_new_tokens, temperature, top_k):
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -block_size:]
             logits, _ = self(idx_cond)
@@ -113,38 +104,110 @@ class GPTDecoder(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
 
-# Training setup
-model = GPTDecoder()
-m = model.to(device)
-print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
+def objective(trial):
+    # Suggest hyperparameters with Trial 99 as reference
+    learning_rate = trial.suggest_float("learning_rate", 5e-4, 3e-3, log=True)  # Around 1.84e-3
+    n_embd = trial.suggest_int("n_embd", 48, 96, step=8)  # 48, 56, 64, 72, 80, 88, 96
+    dropout = trial.suggest_float("dropout", 0.2, 0.5)  # Around 0.42
+    weight_decay = trial.suggest_float("weight_decay", 5e-2, 3e-1, log=True)  # Around 0.19
+    warmup_steps = trial.suggest_int("warmup_steps", 400, 1000, step=100)  # Around 700
+    top_k = trial.suggest_int("top_k", 2, 6)  # Around 3
+    block_size = trial.suggest_int("block_size", 24, 96, step=8)  # 24, 32, 40, 48, 56, 64, 72, 80, 88, 96
+    temperature = trial.suggest_float("temperature", 0.3, 1.0)  # New: Around 0.5
 
+    # Suggest initial values from previous setup
+    trial.set_user_attr("initial_learning_rate", 0.0024595055525029963)
+    trial.set_user_attr("initial_n_embd", 96)
+    trial.set_user_attr("initial_dropout", 0.43652873589534913)
+    trial.set_user_attr("initial_weight_decay",  0.17511875633680343)
+    trial.set_user_attr("initial_warmup_steps", 700)
+    trial.set_user_attr("initial_top_k", 3)
+    trial.set_user_attr("initial_block_size", 64)
+    trial.set_user_attr("initial_temperature", 0.5)
+
+    # Model setup
+    model = GPTDecoder(n_embd=n_embd, dropout=dropout, block_size=block_size)
+    m = model.to(device)
+    print(f"Trial parameters: lr={learning_rate}, n_embd={n_embd}, dropout={dropout}, weight_decay={weight_decay}, warmup_steps={warmup_steps}, top_k={top_k}, block_size={block_size}, temperature={temperature}")
+
+    optimizer = torch.optim.AdamW(
+        m.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+        betas=(beta1, beta2),
+    )
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=lambda step: min(1.0, step / warmup_steps) * (0.75 + 0.25 * (1.0 - step / max_iters))
+    )
+
+    best_val_loss = float('inf')
+    patience_counter = 0
+
+    for iter in range(max_iters):
+        if iter % eval_interval == 0 or iter == max_iters - 1:
+            losses = estimate_loss(m, block_size)
+            val_loss = losses['val'].item()
+            print(f"step {iter}: train loss {losses['train']:.4f}, val loss {val_loss:.4f}")
+
+            improvement = best_val_loss - val_loss
+            if improvement > early_stopping_threshold:
+                best_val_loss = val_loss
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= patience:
+                print(f"Early stopping triggered at iteration {iter}. Best val loss: {best_val_loss:.4f}")
+                break
+
+        xb, yb = get_batch('train', block_size)
+        logits, loss = m(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+
+    return best_val_loss
+
+# Run Optuna optimization
+study = optuna.create_study(direction="minimize")
+study.optimize(objective, n_trials=150)  # Increased for temperature inclusion
+
+# Print best parameters and result
+print("Best trial:")
+trial = study.best_trial
+print(f"  Value (val loss): {trial.value}")
+print("  Params: ")
+for key, value in trial.params.items():
+    print(f"    {key}: {value}")
+
+# Train final model with best parameters
+best_params = study.best_params
+model = GPTDecoder(n_embd=best_params["n_embd"], dropout=best_params["dropout"], block_size=best_params["block_size"])
+m = model.to(device)
 optimizer = torch.optim.AdamW(
     m.parameters(),
-    lr=learning_rate,
-    weight_decay=weight_decay,
+    lr=best_params["learning_rate"],
+    weight_decay=best_params["weight_decay"],
     betas=(beta1, beta2),
 )
-
 scheduler = torch.optim.lr_scheduler.LambdaLR(
     optimizer,
-    lr_lambda=lambda step: min(1.0, step / warmup_steps) * (0.75 + 0.25 * (1.0 - step / max_iters))
+    lr_lambda=lambda step: min(1.0, step / best_params["warmup_steps"]) * (0.75 + 0.25 * (1.0 - step / max_iters))
 )
 
 best_val_loss = float('inf')
 patience_counter = 0
 best_model_path = "best_net.pth"
 
-train_loss_plot = []
-val_loss_plot = []
-
 for iter in range(max_iters):
     if iter % eval_interval == 0 or iter == max_iters - 1:
-        losses = estimate_loss(m)
+        losses = estimate_loss(m, best_params["block_size"])
         train_loss = losses['train']
         val_loss = losses['val']
         print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}")
-        train_loss_plot.append(train_loss.item())
-        val_loss_plot.append(val_loss.item())
 
         improvement = best_val_loss - val_loss
         if improvement > early_stopping_threshold:
@@ -161,7 +224,7 @@ for iter in range(max_iters):
             print(f"Early stopping triggered at iteration {iter}. Best val loss: {best_val_loss:.4f}")
             break
 
-    xb, yb = get_batch('train')
+    xb, yb = get_batch('train', best_params["block_size"])
     logits, loss = m(xb, yb)
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
@@ -177,12 +240,4 @@ m.eval()
 
 # Generate with best model
 context = torch.tensor([encode("Fear is the path to the dark")], dtype=torch.long, device=device)
-print(decode(m.generate(context, max_new_tokens=200)[0].tolist()))
-
-
-with open('losses.txt', 'w') as out:
-    for i, (train_loss, val_loss) in enumerate(zip(train_loss_plot, val_loss_plot)):
-        print(i, train_loss, val_loss, file=out)
-        
-    
-    
+print(decode(m.generate(context, max_new_tokens=200, temperature=best_params["temperature"], top_k=best_params["top_k"])[0].tolist()))

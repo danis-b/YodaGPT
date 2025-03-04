@@ -4,21 +4,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 
-# Define hyperparameters (consistent with your model)
 batch_size = 32
 block_size = 64
-n_embd = 48
+n_embd = 56  
 n_head = 4
 n_layer = 3
-dropout = 0.3
-vocab_size = None  # Will be set after loading data
+dropout = 0.358529328
+vocab_size = None  
 
 # Device setup
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available() else "cpu"
-)
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # Load vocabulary and data utilities
 with open("quotes.txt", "r", encoding="utf-8") as f:
@@ -31,7 +26,15 @@ itos = {i: ch for i, ch in enumerate(chars)}
 encode = lambda s: [stoi[c] for c in s if c in stoi]  # Handle unknown chars gracefully
 decode = lambda l: "".join([itos[i] for i in l])
 
-# Define the GPTDecoder class (same as your code)
+# Alternative: Embed chars if preferred 
+# chars = ['\n', ' ', '!', ',', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+# vocab_size = len(chars)
+# stoi = {ch: i for i, ch in enumerate(chars)}
+# itos = {i: ch for i, ch in enumerate(chars)}
+# encode = lambda s: [stoi[c] for c in s if c in stoi]
+# decode = lambda l: "".join([itos[i] for i in l])
+
+
 class GPTDecoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -65,7 +68,7 @@ class GPTDecoder(nn.Module):
         loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))
         return logits, loss
 
-    def generate(self, idx, max_new_tokens, temperature=0.5, top_k=3):
+    def generate(self, idx, max_new_tokens, temperature, top_k):
         generated = idx
         for _ in range(max_new_tokens):
             idx_cond = generated[:, -block_size:]
@@ -81,7 +84,7 @@ class GPTDecoder(nn.Module):
 
 # Load the model
 model = GPTDecoder()
-model.load_state_dict(torch.load("yoda_weights.pth", map_location=device))
+model.load_state_dict(torch.load("yoda_weights.pth", map_location=device))  # Updated to match your training output
 model.to(device)
 model.eval()
 
@@ -95,7 +98,7 @@ if "generated_text" not in st.session_state:
     st.session_state.generated_text = ""
 
 # Sidebar for parameters
-st.sidebar.image("logo.png")
+st.sidebar.image("logo.png")  # Ensure logo.png exists in your directory
 st.sidebar.title("Generation Parameters")
 max_new_tokens = st.sidebar.slider(
     "Max new tokens",
@@ -105,31 +108,31 @@ max_new_tokens = st.sidebar.slider(
     step=10,
     help="Number of new characters to generate",
 )
-temperature = st.sidebar.slider(
+temperature_slider = st.sidebar.slider(
     "Temperature",
     min_value=0.1,
     max_value=2.0,
-    value=0.5,
+    value=0.6664847146,  
     step=0.1,
     help="Controls randomness: lower (0.3) for predictable text, higher (1.2) for creative text.",
 )
-top_k = st.sidebar.slider(
+top_k_slider = st.sidebar.slider(
     "Top-K",
     min_value=1,
     max_value=10,
-    value=2,
+    value=5,  
     step=1,
     help="Limits choices to top K options: lower (2) for focused text, higher (6) for more variety.",
 )
 
 # Main content area
-st.title("YodaGPT text generator")
+st.title("YodaGPT Text Generator")
 st.write(
-    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text using only Yoda's phrases from Star Wars movie."
+    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text using only Yoda's phrases from Star Wars movies."
 )
 
 # Prompt input
-prompt = st.text_area("Prompt", value="Fear is the path to the", height=100)
+prompt = st.text_area("Prompt", value="Fear is the path to", height=100)
 
 # Placeholder for output
 output_placeholder = st.empty()
@@ -154,8 +157,8 @@ if st.button(button_label):
             for generated_idx in model.generate(
                 context,
                 max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_k=top_k,
+                temperature=temperature_slider,  # Use slider value
+                top_k=top_k_slider,  # Use slider value
             ):
                 if not st.session_state.generating:
                     break  # Stop generation if toggled off
@@ -169,7 +172,7 @@ if st.button(button_label):
                     st.session_state.generated_text += word_buffer
                     output_placeholder.text(initial_text)
                     word_buffer = ""
-                    time.sleep(0.3)  # Add a small delay for visual effect
+                    time.sleep(0.3)  # Small delay for visual effect
                 elif new_char not in " .,!?;:\n":
                     continue  # Keep buffering until a word is complete
 
@@ -184,17 +187,13 @@ if st.button(button_label):
     else:
         # Stop generation
         st.session_state.generating = False
-        # Keep the generated text in output_placeholder
         output_placeholder.text(prompt + st.session_state.generated_text)
 else:
     if not st.session_state.generating:
         st.write("Click 'Generate/Stop' to start generation.")
-    # Ensure the text persists even when not generating
     output_placeholder.text(prompt + st.session_state.generated_text)
-    
-    
 
-# Add GitHub link at the bottom
+
 st.markdown(
     """
     <div style='text-align: center; position: fixed; bottom: 10px; width: 100%;'>
