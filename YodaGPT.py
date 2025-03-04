@@ -1,4 +1,6 @@
-# inspired by original code from https://github.com/karpathy/nanoGPT
+# inspired by original nanoGPT code https://github.com/karpathy/nanoGPT
+# for nanoGPT, please, find the license https://github.com/karpathy/nanoGPT?tab=MIT-1-ov-file
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
