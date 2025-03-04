@@ -95,6 +95,7 @@ if "generated_text" not in st.session_state:
     st.session_state.generated_text = ""
 
 # Sidebar for parameters
+st.sidebar.image("logo.png")
 st.sidebar.title("Generation Parameters")
 max_new_tokens = st.sidebar.slider(
     "Max new tokens",
@@ -122,13 +123,13 @@ top_k = st.sidebar.slider(
 )
 
 # Main content area
-st.title("YodaGPT Text Generator")
+st.title("YodaGPT text generator")
 st.write(
-    "Enter a prompt below and click 'Generate/Stop' to start or stop text generation word-by-word."
+    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text in Yoda's style."
 )
 
 # Prompt input
-prompt = st.text_area("Prompt", value="Fear is the path to the dark", height=100)
+prompt = st.text_area("Prompt", value="Fear is the path to the", height=100)
 
 # Placeholder for output
 output_placeholder = st.empty()
