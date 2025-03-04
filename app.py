@@ -125,7 +125,7 @@ top_k = st.sidebar.slider(
 # Main content area
 st.title("YodaGPT text generator")
 st.write(
-    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text in Yoda's style."
+    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text using Yoda's quotes from Star Wars movie."
 )
 
 # Prompt input
