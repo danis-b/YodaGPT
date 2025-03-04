@@ -1,4 +1,8 @@
 # code from https://github.com/karpathy/nanoGPT
+# please, see the license before using it https://github.com/karpathy/nanoGPT?tab=MIT-1-ov-file
+# here it is provided as the template to start the new nanoGPT based projects
+
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
