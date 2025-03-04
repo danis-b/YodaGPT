@@ -190,3 +190,15 @@ else:
         st.write("Click 'Generate/Stop' to start generation.")
     # Ensure the text persists even when not generating
     output_placeholder.text(prompt + st.session_state.generated_text)
+    
+    
+
+# Add GitHub link at the bottom
+st.markdown(
+    """
+    <div style='text-align: center; position: fixed; bottom: 10px; width: 100%;'>
+        <a href='https://github.com/danis-b/YodaGPT' target='_blank'>View this project on GitHub (danis-b)</a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
