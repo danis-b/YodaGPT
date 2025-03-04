@@ -122,7 +122,7 @@ top_k = st.sidebar.slider(
 )
 
 # Main content area
-st.title("GPT Text Generator")
+st.title("YodaGPT Text Generator")
 st.write(
     "Enter a prompt below and click 'Generate/Stop' to start or stop text generation word-by-word."
 )
