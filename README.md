@@ -1,2 +1,6 @@
+## 🚀 Deployed App
+
+The app is available on Streamlit:[Click here to access](https://yodagpt.streamlit.app)
+
 # YodaGPT
-Token generator  based on nanoGPT to generate Yoda's phrases
+Text generator inspired by [nanoGPT](https://github.com/karpathy/nanoGPT) to generate Yoda's phrases from Star Wars movie.
