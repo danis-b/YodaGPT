@@ -26,8 +26,8 @@ Training:
   * temperature: 0.89879
     
 Generation:
-* Top-K Sampling: Limits predictions to the top 5 probabilities (top_k=5)
-* Temperature: Scales logits by ~0.6665, balancing coherence and creativity.
+* Top-K Sampling: Limits predictions to the top 2 probabilities (top_k=2)
+* Temperature: Scales logits by ~0.89879, balancing coherence and creativity.
 * Streamlit: Yields text character-by-character, displaying full words for a dynamic effect:
 ```
 Fear is the path to the dark side.
