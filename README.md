@@ -10,8 +10,8 @@ This repository contains the training script, a pre-trained model, and a user-fr
 
 Model Architecture:
 * A decoder-only transformer with 3 layers of  multi-head self-attention (n_head=4) and feed-forward networks. 
-* Embedding layer: Maps characters to n_embd=56 dimensions.
-* Positional embedding: Encodes sequence position up to block_size=64.
+* Embedding layer: Maps characters to n_embd=96 dimensions.
+* Positional embedding: Encodes sequence position up to block_size=80.
 
 Training:
 * Dataset: quotes.txt split 90% train, 10% validation.
