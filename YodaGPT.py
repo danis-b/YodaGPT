@@ -6,17 +6,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # Best Parameters from Optuna optimization
-learning_rate = 0.001866024673912973
-n_embd = 56
-dropout = 0.35852932833222273
-weight_decay = 0.2674327245247875
-warmup_steps = 900
-top_k =  5
-block_size = 64
-temperature = 0.6664847146432503
+learning_rate = 0.002259809089341457
+n_embd = 96
+dropout = 0.21658394415968543
+weight_decay = 0.057055997635279965
+warmup_steps = 500
+top_k =  2
+block_size = 80
+temperature = 0.8987989031765724
 
 # Fixed Hyperparameters
-batch_size = 32
+batch_size = 64
 max_iters = 10000
 eval_interval = 100
 eval_iters = 200

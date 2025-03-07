@@ -4,12 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 
-batch_size = 32
-block_size = 64
-n_embd = 56  
+block_size = 80
+n_embd = 96  
 n_head = 4
 n_layer = 3
-dropout = 0.358529328
+dropout = 0.2165839
 vocab_size = None  
 
 # Device setup
@@ -25,14 +24,6 @@ stoi = {ch: i for i, ch in enumerate(chars)}
 itos = {i: ch for i, ch in enumerate(chars)}
 encode = lambda s: [stoi[c] for c in s if c in stoi]  # Handle unknown chars gracefully
 decode = lambda l: "".join([itos[i] for i in l])
-
-# Alternative: Embed chars if preferred 
-# chars = ['\n', ' ', '!', ',', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-# vocab_size = len(chars)
-# stoi = {ch: i for i, ch in enumerate(chars)}
-# itos = {i: ch for i, ch in enumerate(chars)}
-# encode = lambda s: [stoi[c] for c in s if c in stoi]
-# decode = lambda l: "".join([itos[i] for i in l])
 
 
 class GPTDecoder(nn.Module):
@@ -112,7 +103,7 @@ temperature_slider = st.sidebar.slider(
     "Temperature",
     min_value=0.1,
     max_value=2.0,
-    value=0.6664847146,  
+    value=0.89879890,  
     step=0.1,
     help="Controls randomness: lower (0.3) for predictable text, higher (1.2) for creative text.",
 )
@@ -120,7 +111,7 @@ top_k_slider = st.sidebar.slider(
     "Top-K",
     min_value=1,
     max_value=10,
-    value=5,  
+    value=2,  
     step=1,
     help="Limits choices to top K options: lower (2) for focused text, higher (6) for more variety.",
 )
@@ -128,7 +119,7 @@ top_k_slider = st.sidebar.slider(
 # Main content area
 st.title("YodaGPT Text Generator")
 st.write(
-    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text using only Yoda's phrases from Star Wars movies."
+    "Enter a prompt below and click the Generate/Stop button to start/stop the generation of text using Yoda's phrases from Star Wars movies."
 )
 
 # Prompt input
