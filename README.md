@@ -1,6 +1,6 @@
 ## 🚀 Deployed App
 
-The app is available on Streamlit: [Click here to access](https://yodagpt.streamlit.app)
+The app is available on Streamlit (wake the app up if not inactive): [Click here to access](https://yodagpt.streamlit.app)
 
 # YodaGPT
 ![alt text](https://github.com/danis-b/YodaGPT/blob/main/logo.png)
