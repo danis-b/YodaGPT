@@ -2,6 +2,10 @@
 
 The app is available on Streamlit (activate the app if required): [Click here to access](https://yodagpt.streamlit.app)
 
+To run locally, follow these steps:
+* install libraries via "pip install -r requirements.txt"  or  "conda install --file requirements.txt"
+* streamlit run app.py
+
 # YodaGPT
 ![alt text](https://github.com/danis-b/YodaGPT/blob/main/logo.png)
 
